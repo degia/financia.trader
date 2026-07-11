@@ -79,6 +79,76 @@ class TradeJournalPage extends Component
         $this->availableStrategies = Strategy::orderBy('name')->get(['id', 'name'])->toArray();
     }
 
+    public function getPairsByTypeProperty(): array
+    {
+        $type = TradeType::tryFrom($this->tradeType);
+        return $type?->pairs() ?? [];
+    }
+
+    public function updatedTradeType(): void
+    {
+        $this->pair = '';
+    }
+
+    public function updatedEntryPrice(): void
+    {
+        $this->recalculatePnl();
+    }
+
+    public function updatedExitPrice(): void
+    {
+        $this->recalculatePnl();
+    }
+
+    public function updatedSize(): void
+    {
+        $this->recalculatePnl();
+    }
+
+    public function updatedDirection(): void
+    {
+        $this->recalculatePnl();
+    }
+
+    public function updatedFees(): void
+    {
+        $this->recalculatePnl();
+    }
+
+    protected function recalculatePnl(): void
+    {
+        $entry = (float) $this->entryPrice;
+        $exit = (float) $this->exitPrice;
+        $size = (float) $this->size;
+        $fees = (float) $this->fees;
+
+        if ($entry <= 0 || $exit <= 0 || $size <= 0) {
+            $this->pnlAmount = '0';
+            $this->pnlPips = '';
+            $this->outcome = 'open';
+            return;
+        }
+
+        $pnl = $this->direction === 'long'
+            ? ($exit - $entry) * $size
+            : ($entry - $exit) * $size;
+
+        $pnl -= $fees;
+        $this->pnlAmount = (string) round($pnl, 2);
+
+        $pipSize = str_contains($this->pair, 'JPY') ? 0.01 : 0.0001;
+        $pips = abs($exit - $entry) / $pipSize;
+        $this->pnlPips = (string) round($pips, 1);
+
+        if ($pnl > 0) {
+            $this->outcome = 'win';
+        } elseif ($pnl < 0) {
+            $this->outcome = 'loss';
+        } else {
+            $this->outcome = 'breakeven';
+        }
+    }
+
     // ──────────────────────────────────────
     // Queries
     // ──────────────────────────────────────

@@ -35,7 +35,7 @@
     </div>
 
     {{-- Filters --}}
-    <x-glass-card class="mb-6">
+    <x-glass-card class="mb-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {{-- Pair --}}
             <div>
@@ -311,27 +311,32 @@
 
                 <form wire:submit="{{ $isEditing ? 'update' : 'store' }}" class="p-6 space-y-5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {{-- Pair --}}
-                        <div>
-                            <label class="label-text mb-1.5 block">Pair / Asset <span class="text-red-400">*</span></label>
-                            <input type="text" wire:model="pair" class="input-field" placeholder="EUR/USD" />
-                            @error('pair') <p class="text-xs text-red-400 mt-1">{{ $message }}</p> @enderror
-                        </div>
-
                         {{-- Trade Type --}}
                         <div>
                             <label class="label-text mb-1.5 block">Type <span class="text-red-400">*</span></label>
-                            <select wire:model="tradeType" class="input-field">
+                            <select wire:model.live="tradeType" class="input-field">
                                 @foreach(\App\Enums\TradeType::cases() as $type)
                                     <option value="{{ $type->value }}">{{ $type->label() }}</option>
                                 @endforeach
                             </select>
                         </div>
 
+                        {{-- Pair --}}
+                        <div>
+                            <label class="label-text mb-1.5 block">Pair / Asset <span class="text-red-400">*</span></label>
+                            <select wire:model="pair" class="input-field">
+                                <option value="">Select pair...</option>
+                                @foreach($this->pairsByType as $p)
+                                    <option value="{{ $p }}">{{ $p }}</option>
+                                @endforeach
+                            </select>
+                            @error('pair') <p class="text-xs text-red-400 mt-1">{{ $message }}</p> @enderror
+                        </div>
+
                         {{-- Direction --}}
                         <div>
                             <label class="label-text mb-1.5 block">Direction <span class="text-red-400">*</span></label>
-                            <select wire:model="direction" class="input-field">
+                            <select wire:model.live="direction" class="input-field">
                                 @foreach(\App\Enums\TradeDirection::cases() as $dir)
                                     <option value="{{ $dir->value }}">{{ $dir->label() }}</option>
                                 @endforeach
@@ -341,21 +346,21 @@
                         {{-- Size / Lot --}}
                         <div>
                             <label class="label-text mb-1.5 block">Size / Lot <span class="text-red-400">*</span></label>
-                            <input type="number" wire:model="size" class="input-field" placeholder="0.10" step="0.01" min="0" />
+                            <input type="number" wire:model.live="size" class="input-field" placeholder="0.10" step="0.01" min="0" />
                             @error('size') <p class="text-xs text-red-400 mt-1">{{ $message }}</p> @enderror
                         </div>
 
                         {{-- Entry Price --}}
                         <div>
                             <label class="label-text mb-1.5 block">Entry Price <span class="text-red-400">*</span></label>
-                            <input type="number" wire:model="entryPrice" class="input-field" placeholder="1.08450" step="any" min="0" />
+                            <input type="number" wire:model.live="entryPrice" class="input-field" placeholder="1.08450" step="any" min="0" />
                             @error('entryPrice') <p class="text-xs text-red-400 mt-1">{{ $message }}</p> @enderror
                         </div>
 
                         {{-- Exit Price --}}
                         <div>
                             <label class="label-text mb-1.5 block">Exit Price</label>
-                            <input type="number" wire:model="exitPrice" class="input-field" placeholder="1.08920" step="any" min="0" />
+                            <input type="number" wire:model.live="exitPrice" class="input-field" placeholder="1.08920" step="any" min="0" />
                             @error('exitPrice') <p class="text-xs text-red-400 mt-1">{{ $message }}</p> @enderror
                         </div>
 
@@ -388,7 +393,7 @@
                         {{-- Outcome --}}
                         <div>
                             <label class="label-text mb-1.5 block">Outcome <span class="text-red-400">*</span></label>
-                            <select wire:model="outcome" class="input-field">
+                            <select wire:model="outcome" class="input-field" disabled>
                                 @foreach(\App\Enums\TradeOutcome::cases() as $out)
                                     <option value="{{ $out->value }}">{{ $out->label() }}</option>
                                 @endforeach
@@ -398,19 +403,19 @@
                         {{-- Fees --}}
                         <div>
                             <label class="label-text mb-1.5 block">Fees</label>
-                            <input type="number" wire:model="fees" class="input-field" placeholder="0.00" step="any" min="0" />
+                            <input type="number" wire:model.live="fees" class="input-field" placeholder="0.00" step="any" min="0" />
                         </div>
 
                         {{-- P&L Amount --}}
                         <div>
                             <label class="label-text mb-1.5 block">P&L ($)</label>
-                            <input type="number" wire:model="pnlAmount" class="input-field" placeholder="0.00" step="any" />
+                            <input type="number" wire:model="pnlAmount" class="input-field bg-zinc-50 dark:bg-zinc-800/50" placeholder="0.00" step="any" readonly />
                         </div>
 
                         {{-- P&L Pips --}}
                         <div>
                             <label class="label-text mb-1.5 block">P&L (pips)</label>
-                            <input type="number" wire:model="pnlPips" class="input-field" placeholder="0" step="any" />
+                            <input type="number" wire:model="pnlPips" class="input-field bg-zinc-50 dark:bg-zinc-800/50" placeholder="0" step="any" readonly />
                         </div>
 
                         {{-- Strategy --}}

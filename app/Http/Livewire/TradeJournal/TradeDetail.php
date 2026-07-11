@@ -9,9 +9,9 @@ class TradeDetail extends Component
 {
     public ?Trade $trade = null;
 
-    public function mount(int $trade): void
+    public function mount(Trade $trade): void
     {
-        $this->trade = Trade::with(['portfolio', 'strategyRef'])->findOrFail($trade);
+        $this->trade = $trade->load(['portfolio', 'strategyRef']);
     }
 
     public function render()

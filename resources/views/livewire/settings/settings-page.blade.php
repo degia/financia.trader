@@ -5,13 +5,13 @@
     </div>
 
     {{-- Flash message --}}
-    @if (session()->has('saved'))
-        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
-             x-transition:leave="transition-opacity duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="mb-4 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ session('saved') }}
-        </div>
-    @endif
+    <div x-data="{ show: false, msg: '' }"
+         x-on:saved.window="msg = $event.detail.message; show = true; setTimeout(() => show = false, 3000)"
+         x-show="show" x-transition:leave="transition-opacity duration-300"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="mb-4 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <span x-text="msg"></span>
+    </div>
 
     <div class="max-w-2xl space-y-4">
 
@@ -133,30 +133,33 @@
                         <button wire:click="proceedToConfirm" class="btn-danger">Continue</button>
                     </div>
                 @else
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
-                            <x-icon name="exclamation-triangle" class="w-5 h-5 text-red-500" />
+                    <div x-data="{ deleteText: '' }">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
+                                <x-icon name="exclamation-triangle" class="w-5 h-5 text-red-500" />
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Final Confirmation</h3>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Type DELETE to confirm</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Final Confirmation</h3>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Type DELETE to confirm</p>
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                            Type <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs font-semibold text-red-500">DELETE</code> below to permanently erase all data.
+                        </p>
+                        <input type="text" x-model="deleteText" wire:model="confirmText" class="input-field mb-4 font-mono" placeholder="Type DELETE" autocomplete="off" />
+                        <div class="flex justify-end gap-3">
+                            <button wire:click="closeResetModal" class="btn-ghost">Cancel</button>
+                            <button wire:click="resetAllData"
+                                    class="btn-danger"
+                                    :class="deleteText !== 'DELETE' && 'opacity-50 pointer-events-none'"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50">
+                                <span wire:loading.remove wire:target="resetAllData">Delete Everything</span>
+                                <span wire:loading wire:target="resetAllData" class="flex items-center gap-2">
+                                    <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" class="opacity-75"/></svg>
+                                    Deleting...
+                                </span>
+                            </button>
                         </div>
-                    </div>
-                    <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                        Type <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs font-semibold text-red-500">DELETE</code> below to permanently erase all data.
-                    </p>
-                    <input type="text" wire:model="confirmText" class="input-field mb-4 font-mono" placeholder="Type DELETE" autocomplete="off" />
-                    <div class="flex justify-end gap-3">
-                        <button wire:click="closeResetModal" class="btn-ghost">Cancel</button>
-                        <button wire:click="resetAllData"
-                                class="btn-danger {{ $confirmText !== 'DELETE' ? 'opacity-50 pointer-events-none' : '' }}"
-                                wire:loading.attr="disabled" wire:loading.class="opacity-50">
-                            <span wire:loading.remove wire:target="resetAllData">Delete Everything</span>
-                            <span wire:loading wire:target="resetAllData" class="flex items-center gap-2">
-                                <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" class="opacity-75"/></svg>
-                                Deleting...
-                            </span>
-                        </button>
                     </div>
                 @endif
             </div>
@@ -164,11 +167,5 @@
     @endif
 
     @push('scripts')
-    <script>
-        document.addEventListener('livewire:saved', (e) => {
-            const msg = e.detail?.message || 'Saved!';
-            Livewire.dispatch('notify', { message: msg });
-        });
-    </script>
     @endpush
 </div>
