@@ -39,7 +39,7 @@
                     <x-icon name="arrow-trending-up" class="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 </div>
             </div>
-            <div class="text-2xl font-bold tracking-tight {{ $getProfitClass() }}">
+            <div class="text-2xl font-bold tracking-tight {{ ($stats['total_pnl'] ?? 0) >= 0 ? 'stat-profit' : 'stat-loss' }}">
                 {{ ($stats['total_pnl'] ?? 0) >= 0 ? '+' : '' }}${{ number_format($stats['total_pnl'] ?? 0, 2) }}
             </div>
             <div class="flex items-center gap-1.5 mt-1.5">

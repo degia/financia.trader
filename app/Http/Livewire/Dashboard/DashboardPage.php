@@ -70,11 +70,6 @@ class DashboardPage extends Component
         ])->toArray();
     }
 
-    public function getProfitClass(): string
-    {
-        return ($this->stats['total_pnl'] ?? 0) >= 0 ? 'stat-profit' : 'stat-loss';
-    }
-
     public function render()
     {
         return view('livewire.dashboard.dashboard-page')
