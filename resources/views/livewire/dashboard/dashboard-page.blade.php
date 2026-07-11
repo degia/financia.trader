@@ -1,4 +1,4 @@
-<div>
+<div wire:loading.class="opacity-60" wire:loading.class.delay="opacity-100" wire:target="loadData">
     {{-- Header --}}
     <div class="mb-6">
         <h1 class="page-title">Dashboard</h1>
@@ -146,7 +146,7 @@
                                             'win' => 'bg-emerald-400/10 text-emerald-600 dark:text-emerald-400',
                                             'loss' => 'bg-red-400/10 text-red-600 dark:text-red-400',
                                             'breakeven' => 'bg-zinc-400/10 text-zinc-600 dark:text-zinc-400',
-                                            default => 'bg-blue-400/10 text-blue-600 dark:text-blue-400',
+                                            default => 'bg-zinc-400/10 text-zinc-600 dark:text-zinc-400',
                                         } }}">
                                         {{ $trade['outcome'] }}
                                     </span>
