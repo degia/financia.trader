@@ -14,26 +14,42 @@
     {{-- Donut Charts --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <x-glass-card title="Win Rate" subtitle="Win vs Loss">
-            <div x-data="donutChart('winRateDonut')" class="h-56">
-                <div x-ref="chart" class="w-full h-full"></div>
+            <div x-data="donutChart('winRateDonut')" class="flex flex-col items-center">
+                <div x-ref="chart" class="w-full h-48"></div>
+                <div class="text-center mt-1">
+                    <div class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100" x-text="displayValue"></div>
+                    <div class="text-[10px] font-medium text-zinc-500 dark:text-zinc-400" x-text="displayLabel"></div>
+                </div>
             </div>
         </x-glass-card>
 
         <x-glass-card title="Profit Factor" subtitle="Win vs Loss P&L">
-            <div x-data="donutChart('profitFactorDonut')" class="h-56">
-                <div x-ref="chart" class="w-full h-full"></div>
+            <div x-data="donutChart('profitFactorDonut')" class="flex flex-col items-center">
+                <div x-ref="chart" class="w-full h-48"></div>
+                <div class="text-center mt-1">
+                    <div class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100" x-text="displayValue"></div>
+                    <div class="text-[10px] font-medium text-zinc-500 dark:text-zinc-400" x-text="displayLabel"></div>
+                </div>
             </div>
         </x-glass-card>
 
         <x-glass-card title="Total P&L" subtitle="Trade outcome split">
-            <div x-data="donutChart('totalPnlDonut')" class="h-56">
-                <div x-ref="chart" class="w-full h-full"></div>
+            <div x-data="donutChart('totalPnlDonut')" class="flex flex-col items-center">
+                <div x-ref="chart" class="w-full h-48"></div>
+                <div class="text-center mt-1">
+                    <div class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100" x-text="displayValue"></div>
+                    <div class="text-[10px] font-medium text-zinc-500 dark:text-zinc-400" x-text="displayLabel"></div>
+                </div>
             </div>
         </x-glass-card>
 
         <x-glass-card title="Avg R:R" subtitle="Risk/Reward distribution">
-            <div x-data="donutChart('avgRrDonut')" class="h-56">
-                <div x-ref="chart" class="w-full h-full"></div>
+            <div x-data="donutChart('avgRrDonut')" class="flex flex-col items-center">
+                <div x-ref="chart" class="w-full h-48"></div>
+                <div class="text-center mt-1">
+                    <div class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100" x-text="displayValue"></div>
+                    <div class="text-[10px] font-medium text-zinc-500 dark:text-zinc-400" x-text="displayLabel"></div>
+                </div>
             </div>
         </x-glass-card>
     </div>
@@ -147,10 +163,25 @@
                 return {
                     chart: null,
                     observer: null,
+                    totalValue: '',
+                    totalLabel: '',
+                    hoveredValue: null,
+                    hoveredLabel: null,
+
+                    get displayValue() {
+                        return this.hoveredValue !== null ? this.hoveredValue : this.totalValue;
+                    },
+
+                    get displayLabel() {
+                        return this.hoveredLabel !== null ? this.hoveredLabel : this.totalLabel;
+                    },
 
                     init() {
                         const c = getThemeColors();
                         const cfg = getDonutConfig(chartId);
+                        this.totalValue = cfg.totalFormatter();
+                        this.totalLabel = cfg.totalLabel;
+
                         const options = {
                             chart: {
                                 type: 'donut',
@@ -165,26 +196,7 @@
                                     donut: {
                                         size: '72%',
                                         labels: {
-                                            show: true,
-                                            name: {
-                                                show: true,
-                                                fontSize: '11px',
-                                                color: c.text
-                                            },
-                                            value: {
-                                                show: true,
-                                                fontSize: '18px',
-                                                fontWeight: 700,
-                                                color: c.textStrong,
-                                                formatter: cfg.valueFormatter,
-                                            },
-                                            total: {
-                                                show: true,
-                                                label: cfg.totalLabel,
-                                                fontSize: '11px',
-                                                color: c.text,
-                                                formatter: cfg.totalFormatter,
-                                            },
+                                            show: false,
                                         },
                                     },
                                 },
@@ -199,9 +211,21 @@
                             tooltip: {
                                 theme: c.isDark ? 'dark' : 'light',
                             },
+                            events: {
+                                dataPointMouseOver: (event, chartCtx, config) => {
+                                    const idx = config.dataPointIndex;
+                                    this.hoveredValue = cfg.valueFormatter(cfg.series[idx]);
+                                    this.hoveredLabel = cfg.labels[idx];
+                                },
+                            },
                         };
 
                         this.renderChart(options);
+
+                        this.$el.addEventListener('mouseleave', () => {
+                            this.hoveredValue = null;
+                            this.hoveredLabel = null;
+                        });
 
                         this.observer = new MutationObserver(() => {
                             this.renderChart(options);
