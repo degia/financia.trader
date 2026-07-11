@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire\Dashboard;
 
+use App\Models\Portfolio;
 use App\Models\Trade;
 use App\Models\BalanceHistory;
 use App\Services\AnalyticsService;
@@ -12,8 +13,7 @@ class DashboardPage extends Component
     public array $stats = [];
     public array $recentTrades = [];
     public array $equityCurve = [];
-    public array $monthlyPnl = [];
-    public string $pnlPeriod = 'all';
+    public string $activePortfolio = '';
 
     public function boot(AnalyticsService $analytics): void
     {
@@ -27,57 +27,57 @@ class DashboardPage extends Component
 
     public function loadData(): void
     {
-        $this->recentTrades = Trade::latest('entry_date')
-            ->limit(10)
-            ->get()
-            ->toArray();
+        $portfolio = Portfolio::where('is_active', true)->first();
 
-        $this->equityCurve = $this->getEquityCurveData();
-        $this->monthlyPnl = $this->getMonthlyPnlData();
-    }
+        if ($portfolio) {
+            $this->activePortfolio = $portfolio->name;
+            $this->stats['current_balance'] = (float) $portfolio->current_balance;
+            $this->stats['initial_balance'] = (float) $portfolio->initial_balance;
+            $this->stats['balance_change'] = (float) $portfolio->current_balance - (float) $portfolio->initial_balance;
+            $this->stats['balance_change_pct'] = $portfolio->initial_balance > 0
+                ? round((($portfolio->current_balance - $portfolio->initial_balance) / $portfolio->initial_balance) * 100, 1)
+                : 0;
 
-    public function getEquityCurveData(): array
-    {
-        $firstBalance = BalanceHistory::latest()->first();
-        $initialBalance = $firstBalance?->balance ?? 10000;
-
-        $trades = Trade::closed()
-            ->orderBy('exit_date')
-            ->get(['pnl_amount', 'exit_date']);
-
-        $equity = $initialBalance;
-        $data = [['x' => now()->subDays(30)->timestamp * 1000, 'y' => $initialBalance]];
-
-        foreach ($trades as $trade) {
-            $equity += $trade->pnl_amount;
-            $data[] = [
-                'x' => ($trade->exit_date ?? $trade->created_at)->timestamp * 1000,
-                'y' => round($equity, 2),
-            ];
+            $this->equityCurve = $this->getEquityCurveFromHistory($portfolio->id);
+        } else {
+            $this->stats['current_balance'] = 0;
+            $this->stats['initial_balance'] = 0;
+            $this->stats['balance_change'] = 0;
+            $this->stats['balance_change_pct'] = 0;
+            $this->equityCurve = [];
         }
 
-        return $data;
+        $this->recentTrades = Trade::with('portfolio')
+            ->latest('entry_date')
+            ->limit(5)
+            ->get()
+            ->toArray();
     }
 
-    public function getMonthlyPnlData(): array
+    public function getEquityCurveFromHistory(int $portfolioId): array
     {
-        $trades = Trade::closed()
-            ->selectRaw("DATE_FORMAT(entry_date, '%Y-%m') as month, SUM(pnl_amount) as total")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+        $records = BalanceHistory::where('portfolio_id', $portfolioId)
+            ->orderBy('date')
+            ->get(['date', 'balance']);
 
-        return $trades->map(fn($t) => ['x' => $t->month, 'y' => round($t->total, 2)])->toArray();
+        if ($records->isEmpty()) {
+            return [];
+        }
+
+        return $records->map(fn ($record) => [
+            'x' => $record->date->timestamp * 1000,
+            'y' => (float) $record->balance,
+        ])->toArray();
     }
 
     public function getProfitClass(): string
     {
-        return $this->stats['total_pnl'] >= 0 ? 'stat-profit' : 'stat-loss';
+        return ($this->stats['total_pnl'] ?? 0) >= 0 ? 'stat-profit' : 'stat-loss';
     }
 
     public function render()
     {
         return view('livewire.dashboard.dashboard-page')
-            ->layout('layouts.app', ['title' => 'Dashboard - ' . config('app.name')]);
+            ->layout('layouts.app', ['title' => 'Dashboard — ' . config('app.name')]);
     }
 }

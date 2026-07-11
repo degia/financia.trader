@@ -107,6 +107,90 @@ class AnalyticsService
         return $data;
     }
 
+    public function getWinLossCounts(): array
+    {
+        return [
+            'wins' => Trade::wins()->count(),
+            'losses' => Trade::losses()->count(),
+            'breakeven' => Trade::where('outcome', 'breakeven')->count(),
+        ];
+    }
+
+    public function getDailyPnl(?int $month = null, ?int $year = null): array
+    {
+        $month = $month ?? (int) now()->format('m');
+        $year = $year ?? (int) now()->format('Y');
+
+        $dailyData = Trade::closed()
+            ->whereMonth('exit_date', $month)
+            ->whereYear('exit_date', $year)
+            ->select(
+                DB::raw('DATE(exit_date) as day'),
+                DB::raw('SUM(pnl_amount) as total_pnl'),
+                DB::raw('COUNT(*) as trade_count')
+            )
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get()
+            ->keyBy('day');
+
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $result = [];
+
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date = sprintf('%04d-%02d-%02d', $year, $month, $d);
+            $dayOfWeek = (int) date('w', strtotime($date));
+
+            // Skip weekends (0=Sun, 6=Sat)
+            if ($dayOfWeek === 0 || $dayOfWeek === 6) {
+                $result[] = ['date' => $date, 'pnl' => null, 'trades' => 0, 'dow' => $dayOfWeek];
+                continue;
+            }
+
+            $record = $dailyData->get($date);
+            $result[] = [
+                'date' => $date,
+                'pnl' => $record ? (float) $record->total_pnl : 0,
+                'trades' => $record ? (int) $record->trade_count : 0,
+                'dow' => $dayOfWeek,
+            ];
+        }
+
+        return $result;
+    }
+
+    public function getStreakStats(): array
+    {
+        $trades = Trade::closed()
+            ->orderBy('exit_date')
+            ->get(['outcome']);
+
+        $maxWinStreak = 0;
+        $maxLossStreak = 0;
+        $currentWin = 0;
+        $currentLoss = 0;
+
+        foreach ($trades as $trade) {
+            if ($trade->outcome->value === 'win') {
+                $currentWin++;
+                $currentLoss = 0;
+                $maxWinStreak = max($maxWinStreak, $currentWin);
+            } elseif ($trade->outcome->value === 'loss') {
+                $currentLoss++;
+                $currentWin = 0;
+                $maxLossStreak = max($maxLossStreak, $currentLoss);
+            } else {
+                $currentWin = 0;
+                $currentLoss = 0;
+            }
+        }
+
+        return [
+            'max_win_streak' => $maxWinStreak,
+            'max_loss_streak' => $maxLossStreak,
+        ];
+    }
+
     public function getStats(): array
     {
         return [

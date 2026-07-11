@@ -9,7 +9,8 @@ use App\Http\Livewire\Calendar\CalendarPage;
 use App\Http\Livewire\Settings\SettingsPage;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', DashboardPage::class)->name('dashboard');
+Route::get('/', fn () => view('test'))->name('test');
+Route::get('/dashboard', DashboardPage::class)->name('dashboard');
 Route::get('/trades', TradeJournalPage::class)->name('trades.index');
 Route::get('/trades/{trade}', TradeDetail::class)->name('trades.show');
 Route::get('/portfolio', PortfolioPage::class)->name('portfolio');

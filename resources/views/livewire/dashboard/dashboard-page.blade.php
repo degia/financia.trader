@@ -1,74 +1,152 @@
 <div>
+    {{-- Header --}}
     <div class="mb-6">
         <h1 class="page-title">Dashboard</h1>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Overview of your trading performance</p>
+        <p class="page-subtitle">Overview of your trading performance</p>
     </div>
 
     {{-- Stats Grid --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <x-stat-box label="Total P&L" :value="'$' . number_format($stats['total_pnl'], 2)" icon="wallet" :trend="$stats['total_pnl'] >= 0 ? 'up' : 'down'" :trendValue="$stats['total_pnl'] >= 0 ? '+' . number_format($stats['total_pnl'], 2) : number_format($stats['total_pnl'], 2)" />
 
-        <x-stat-box label="Win Rate" :value="$stats['win_rate'] . '%'" icon="target" :trendValue="$stats['wins'] . 'W / ' . $stats['losses'] . 'L'" />
+        {{-- Current Balance --}}
+        <x-glass-card>
+            <div class="flex items-center justify-between mb-3">
+                <span class="label-text">Current Balance</span>
+                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <x-icon name="wallet" class="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                </div>
+            </div>
+            <div class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                ${{ number_format($stats['current_balance'] ?? 0, 2) }}
+            </div>
+            @if(isset($stats['balance_change']))
+                <div class="flex items-center gap-1.5 mt-1.5">
+                    <span class="text-xs font-medium {{ ($stats['balance_change'] ?? 0) >= 0 ? 'stat-profit' : 'stat-loss' }}">
+                        {{ ($stats['balance_change'] ?? 0) >= 0 ? '+' : '' }}${{ number_format(abs($stats['balance_change']), 2) }}
+                    </span>
+                    <span class="text-xs text-zinc-400 dark:text-zinc-600">
+                        ({{ ($stats['balance_change_pct'] ?? 0) >= 0 ? '+' : '' }}{{ $stats['balance_change_pct'] ?? 0 }}%)
+                    </span>
+                </div>
+            @endif
+        </x-glass-card>
 
-        <x-stat-box label="Total Trades" :value="$stats['total_trades']" icon="arrow-trending-up" :trendValue="$stats['open_trades'] . ' open'" />
-
-        <x-stat-box label="Profit Factor" :value="$stats['profit_factor']" icon="chart-bar" :trendValue="'Avg R:R ' . $stats['avg_rr']" />
-    </div>
-
-    {{-- Charts Row --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {{-- Equity Curve --}}
-        <x-glass-card title="Equity Curve" subtitle="Portfolio growth over time">
-            <div x-data="equityChart()" x-init="init()" class="h-64">
-                <div x-ref="chart" class="w-full h-full"></div>
+        {{-- Total P&L --}}
+        <x-glass-card>
+            <div class="flex items-center justify-between mb-3">
+                <span class="label-text">Total P&L</span>
+                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <x-icon name="arrow-trending-up" class="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                </div>
+            </div>
+            <div class="text-2xl font-bold tracking-tight {{ $getProfitClass() }}">
+                {{ ($stats['total_pnl'] ?? 0) >= 0 ? '+' : '' }}${{ number_format($stats['total_pnl'] ?? 0, 2) }}
+            </div>
+            <div class="flex items-center gap-1.5 mt-1.5">
+                <span class="text-xs text-zinc-400 dark:text-zinc-600">PF {{ $stats['profit_factor'] ?? '0.00' }}</span>
             </div>
         </x-glass-card>
 
-        {{-- Monthly P&L --}}
-        <x-glass-card title="Monthly P&L" subtitle="Profit and loss by month">
-            <div x-data="monthlyPnlChart()" x-init="init()" class="h-64">
-                <div x-ref="chart" class="w-full h-full"></div>
+        {{-- Win Rate --}}
+        <x-glass-card>
+            <div class="flex items-center justify-between mb-3">
+                <span class="label-text">Win Rate</span>
+                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <x-icon name="target" class="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                </div>
+            </div>
+            <div class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {{ $stats['win_rate'] ?? '0.0' }}%
+            </div>
+            <div class="flex items-center gap-1.5 mt-1.5">
+                <span class="text-xs stat-profit">{{ $stats['wins'] ?? 0 }}W</span>
+                <span class="text-xs text-zinc-300 dark:text-zinc-700">/</span>
+                <span class="text-xs stat-loss">{{ $stats['losses'] ?? 0 }}L</span>
             </div>
         </x-glass-card>
+
+        {{-- Total Trades --}}
+        <x-glass-card>
+            <div class="flex items-center justify-between mb-3">
+                <span class="label-text">Total Trades</span>
+                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <x-icon name="chart-bar" class="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                </div>
+            </div>
+            <div class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {{ $stats['total_trades'] ?? 0 }}
+            </div>
+            <div class="flex items-center gap-1.5 mt-1.5">
+                <span class="text-xs text-zinc-400 dark:text-zinc-600">
+                    {{ $stats['open_trades'] ?? 0 }} open · {{ $stats['closed_trades'] ?? 0 }} closed
+                </span>
+            </div>
+        </x-glass-card>
+
     </div>
+
+    {{-- Equity Curve --}}
+    <x-glass-card title="Equity Curve" subtitle="Portfolio balance over time" class="mb-6">
+        @if(count($equityCurve) > 1)
+            <div x-data="equityChart()" x-init="init()" class="h-64 sm:h-72 -mx-2">
+                <div x-ref="chart" class="w-full h-full"></div>
+            </div>
+        @else
+            <div class="flex items-center justify-center h-64">
+                <div class="text-center">
+                    <x-icon name="chart-bar" class="w-10 h-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
+                    <p class="text-sm text-zinc-400 dark:text-zinc-500">Not enough data for equity curve</p>
+                </div>
+            </div>
+        @endif
+    </x-glass-card>
 
     {{-- Recent Trades --}}
-    <x-glass-card title="Recent Trades" subtitle="Last 10 trades">
+    <x-glass-card title="Recent Trades" subtitle="Last 5 transactions">
         @if(count($recentTrades) > 0)
             <div class="overflow-x-auto -mx-6">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-zinc-200/50 dark:border-zinc-700/50">
                             <th class="px-6 py-3 text-left label-text">Pair</th>
-                            <th class="px-6 py-3 text-left label-text">Direction</th>
-                            <th class="px-6 py-3 text-left label-text">Entry</th>
-                            <th class="px-6 py-3 text-left label-text">Exit</th>
+                            <th class="px-6 py-3 text-left label-text hidden sm:table-cell">Direction</th>
+                            <th class="px-6 py-3 text-right label-text hidden sm:table-cell">Entry</th>
+                            <th class="px-6 py-3 text-right label-text hidden md:table-cell">Exit</th>
                             <th class="px-6 py-3 text-right label-text">P&L</th>
                             <th class="px-6 py-3 text-right label-text">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($recentTrades as $trade)
-                            <tr class="border-b border-zinc-100/50 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                                <td class="px-6 py-3 font-medium">{{ $trade['pair'] }}</td>
+                            <tr class="border-b border-zinc-100/50 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-white/[0.02] transition-colors">
                                 <td class="px-6 py-3">
-                                    <span class="inline-flex items-center gap-1 text-xs font-medium {{ $trade['direction'] === 'long' ? 'text-emerald-400' : 'text-red-400' }}">
+                                    <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $trade['pair'] }}</div>
+                                    <div class="text-xs text-zinc-400 dark:text-zinc-600 sm:hidden">
+                                        {{ ucfirst($trade['direction']) }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3 hidden sm:table-cell">
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium {{ $trade['direction'] === 'long' ? 'stat-profit' : 'stat-loss' }}">
                                         <x-icon :name="$trade['direction'] === 'long' ? 'arrow-up-right' : 'arrow-down-right'" class="w-3 h-3" />
                                         {{ ucfirst($trade['direction']) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">{{ $trade['entry_price'] }}</td>
-                                <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">{{ $trade['exit_price'] ?? '—' }}</td>
-                                <td class="px-6 py-3 text-right font-medium {{ $trade['pnl_amount'] >= 0 ? 'stat-profit' : 'stat-loss' }}">
+                                <td class="px-6 py-3 text-right text-zinc-500 dark:text-zinc-400 font-mono text-xs hidden sm:table-cell">
+                                    {{ $trade['entry_price'] }}
+                                </td>
+                                <td class="px-6 py-3 text-right text-zinc-500 dark:text-zinc-400 font-mono text-xs hidden md:table-cell">
+                                    {{ $trade['exit_price'] ?? '—' }}
+                                </td>
+                                <td class="px-6 py-3 text-right font-medium font-mono text-xs {{ $trade['pnl_amount'] >= 0 ? 'stat-profit' : 'stat-loss' }}">
                                     {{ $trade['pnl_amount'] >= 0 ? '+' : '' }}${{ number_format($trade['pnl_amount'], 2) }}
                                 </td>
                                 <td class="px-6 py-3 text-right">
                                     <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider
                                         {{ match($trade['outcome']) {
-                                            'win' => 'bg-emerald-400/10 text-emerald-400',
-                                            'loss' => 'bg-red-400/10 text-red-400',
-                                            'breakeven' => 'bg-zinc-400/10 text-zinc-400',
-                                            default => 'bg-blue-400/10 text-blue-400',
+                                            'win' => 'bg-emerald-400/10 text-emerald-600 dark:text-emerald-400',
+                                            'loss' => 'bg-red-400/10 text-red-600 dark:text-red-400',
+                                            'breakeven' => 'bg-zinc-400/10 text-zinc-600 dark:text-zinc-400',
+                                            default => 'bg-blue-400/10 text-blue-600 dark:text-blue-400',
                                         } }}">
                                         {{ $trade['outcome'] }}
                                     </span>
@@ -96,66 +174,98 @@
         function equityChart() {
             return {
                 chart: null,
+                observer: null,
                 init() {
-                    const data = @json($equityCurve);
-                    const options = {
-                        chart: { type: 'area', height: '100%', toolbar: { show: false }, background: 'transparent', foreColor: '#71717a' },
-                        series: [{ name: 'Equity', data: data }],
-                        colors: ['#a1a1aa'],
-                        stroke: { width: 2, curve: 'smooth' },
-                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05 } },
-                        xaxis: { type: 'datetime', labels: { style: { colors: '#71717a', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-                        yaxis: { labels: { style: { colors: '#71717a', fontSize: '11px' }, formatter: v => '$' + v.toLocaleString() } },
-                        grid: { borderColor: 'rgba(113,113,122,0.08)', strokeDashArray: 3 },
-                        tooltip: { theme: 'dark', style: { fontSize: '12px' }, y: { formatter: v => '$' + v.toLocaleString() } },
-                        theme: { mode: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' }
-                    };
+                    const rawData = @json($equityCurve);
+                    const self = this;
 
-                    const applyTheme = () => {
+                    const getOptions = () => {
                         const isDark = document.documentElement.classList.contains('dark');
-                        options.tooltip.theme = isDark ? 'dark' : 'light';
-                        if (this.chart) this.chart.destroy();
-                        this.chart = new ApexCharts(this.$refs.chart, options);
-                        this.chart.render();
+                        const lineColor = isDark ? '#fafafa' : '#0a0a0a';
+                        const textColor = isDark ? '#71717a' : '#a3a3a3';
+                        const gridColor = isDark ? 'rgba(250,250,250,0.06)' : 'rgba(10,10,10,0.06)';
+                        const gradientStart = isDark ? 'rgba(250,250,250,0.15)' : 'rgba(10,10,10,0.10)';
+                        const gradientEnd = isDark ? 'rgba(250,250,250,0.01)' : 'rgba(10,10,10,0.01)';
+
+                        return {
+                            chart: {
+                                type: 'area',
+                                height: '100%',
+                                toolbar: { show: false },
+                                background: 'transparent',
+                                foreColor: textColor,
+                                fontFamily: "'Inter', sans-serif",
+                            },
+                            series: [{ name: 'Balance', data: rawData }],
+                            colors: [lineColor],
+                            stroke: { width: 2, curve: 'smooth' },
+                            fill: {
+                                type: 'gradient',
+                                gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.2,
+                                    opacityTo: 0.02,
+                                    colorStops: [
+                                        { offset: 0, color: gradientStart, opacity: 0.2 },
+                                        { offset: 100, color: gradientEnd, opacity: 0.02 },
+                                    ],
+                                },
+                            },
+                            xaxis: {
+                                type: 'datetime',
+                                labels: { style: { colors: textColor, fontSize: '11px' }, format: 'dd MMM' },
+                                axisBorder: { show: false },
+                                axisTicks: { show: false },
+                                crosshairs: { show: false },
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: { colors: textColor, fontSize: '11px' },
+                                    formatter: v => '$' + v.toLocaleString(),
+                                },
+                                forceNiceScale: true,
+                            },
+                            grid: {
+                                borderColor: gridColor,
+                                strokeDashArray: 3,
+                                xaxis: { lines: { show: false } },
+                                yaxis: { lines: { show: true } },
+                                padding: { left: 8, right: 8 },
+                            },
+                            tooltip: {
+                                theme: isDark ? 'dark' : 'light',
+                                style: { fontSize: '12px', fontFamily: "'Inter', sans-serif" },
+                                y: { formatter: v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2 }) },
+                                x: { format: 'dd MMM yyyy' },
+                            },
+                            markers: {
+                                size: 0,
+                                hover: { size: 5, sizeOffset: 3 },
+                            },
+                            dataLabels: { enabled: false },
+                        };
                     };
 
-                    applyTheme();
-                    const observer = new MutationObserver(() => applyTheme());
-                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-                }
-            }
-        }
-
-        function monthlyPnlChart() {
-            return {
-                chart: null,
-                init() {
-                    const data = @json($monthlyPnl);
-                    const options = {
-                        chart: { type: 'bar', height: '100%', toolbar: { show: false }, background: 'transparent', foreColor: '#71717a' },
-                        series: [{ name: 'P&L', data: data }],
-                        colors: ['#a1a1aa'],
-                        plotOptions: { bar: { borderRadius: 6, columnWidth: '60%', colors: { ranges: [{ from: -Infinity, to: 0, color: '#ef4444' }, { from: 0, to: Infinity, color: '#22c55e' }] } } },
-                        xaxis: { type: 'category', labels: { style: { colors: '#71717a', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-                        yaxis: { labels: { style: { colors: '#71717a', fontSize: '11px' }, formatter: v => '$' + v.toLocaleString() } },
-                        grid: { borderColor: 'rgba(113,113,122,0.08)', strokeDashArray: 3 },
-                        tooltip: { theme: 'dark', style: { fontSize: '12px' }, y: { formatter: v => '$' + v.toLocaleString() } },
-                        theme: { mode: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' }
+                    const render = () => {
+                        if (self.chart) self.chart.destroy();
+                        self.chart = new ApexCharts(self.$refs.chart, getOptions());
+                        self.chart.render();
                     };
 
-                    const applyTheme = () => {
-                        const isDark = document.documentElement.classList.contains('dark');
-                        options.tooltip.theme = isDark ? 'dark' : 'light';
-                        if (this.chart) this.chart.destroy();
-                        this.chart = new ApexCharts(this.$refs.chart, options);
-                        this.chart.render();
-                    };
+                    render();
 
-                    applyTheme();
-                    const observer = new MutationObserver(() => applyTheme());
-                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-                }
-            }
+                    self.observer = new MutationObserver(() => render());
+                    self.observer.observe(document.documentElement, {
+                        attributes: true,
+                        attributeFilter: ['class'],
+                    });
+                },
+
+                destroy() {
+                    if (this.chart) this.chart.destroy();
+                    if (this.observer) this.observer.disconnect();
+                },
+            };
         }
     </script>
     @endpush

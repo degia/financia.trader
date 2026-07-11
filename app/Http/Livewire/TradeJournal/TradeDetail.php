@@ -11,12 +11,12 @@ class TradeDetail extends Component
 
     public function mount(int $trade): void
     {
-        $this->trade = Trade::findOrFail($trade);
+        $this->trade = Trade::with(['portfolio', 'strategyRef'])->findOrFail($trade);
     }
 
     public function render()
     {
         return view('livewire.trade-journal.trade-detail')
-            ->layout('layouts.app', ['title' => 'Trade Detail - ' . config('app.name')]);
+            ->layout('layouts.app', ['title' => $this->trade->pair . ' Trade — ' . config('app.name')]);
     }
 }
