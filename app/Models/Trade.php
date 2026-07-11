@@ -6,10 +6,13 @@ use App\Enums\TradeDirection;
 use App\Enums\TradeOutcome;
 use App\Enums\TradeType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Trade extends Model
 {
     protected $fillable = [
+        'portfolio_id',
+        'strategy_id',
         'pair',
         'trade_type',
         'direction',
@@ -48,6 +51,16 @@ class Trade extends Model
         ];
     }
 
+    public function portfolio(): BelongsTo
+    {
+        return $this->belongsTo(Portfolio::class);
+    }
+
+    public function strategyRef(): BelongsTo
+    {
+        return $this->belongsTo(Strategy::class, 'strategy_id');
+    }
+
     public function scopeClosed($query)
     {
         return $query->where('outcome', '!=', 'open');
@@ -66,5 +79,24 @@ class Trade extends Model
     public function scopeLosses($query)
     {
         return $query->where('outcome', 'loss');
+    }
+
+    public function scopeOfPortfolio($query, $portfolioId)
+    {
+        return $query->where('portfolio_id', $portfolioId);
+    }
+
+    public function getRiskRewardRatioAttribute(): ?float
+    {
+        if (!$this->stop_loss || !$this->take_profit || $this->entry_price == 0) {
+            return null;
+        }
+
+        $risk = abs($this->entry_price - $this->stop_loss);
+        $reward = abs($this->take_profit - $this->entry_price);
+
+        if ($risk == 0) return null;
+
+        return round($reward / $risk, 2);
     }
 }
