@@ -11,6 +11,9 @@ class AnalyticsPage extends Component
     public array $byPair = [];
     public array $byStrategy = [];
     public array $winLoss = [];
+    public array $profitFactorDonut = [];
+    public array $totalPnlDonut = [];
+    public array $avgRrDonut = [];
 
     public function boot(AnalyticsService $analytics): void
     {
@@ -18,6 +21,9 @@ class AnalyticsPage extends Component
         $this->byPair = $analytics->getPerformanceByPair();
         $this->byStrategy = $analytics->getPerformanceByStrategy();
         $this->winLoss = $analytics->getWinLossCounts();
+        $this->profitFactorDonut = $analytics->getProfitFactorDonutData();
+        $this->totalPnlDonut = $analytics->getTotalPnlDonutData();
+        $this->avgRrDonut = $analytics->getAvgRrDonutData();
     }
 
     public function render()

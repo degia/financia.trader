@@ -11,18 +11,38 @@
         <x-stat-box label="Avg R:R" :value="$stats['avg_rr']" icon="percentage" />
     </div>
 
-    {{-- Win Rate Donut --}}
-    <x-glass-card title="Win Rate" subtitle="Win vs Loss distribution" class="mb-6">
-        <div x-data="winRateChart()" x-init="init()" class="h-64">
-            <div x-ref="chart" class="w-full h-full"></div>
-        </div>
-    </x-glass-card>
+    {{-- Donut Charts --}}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <x-glass-card title="Win Rate" subtitle="Win vs Loss">
+            <div x-data="donutChart('winRateDonut')" class="h-56">
+                <div x-ref="chart" class="w-full h-full"></div>
+            </div>
+        </x-glass-card>
+
+        <x-glass-card title="Profit Factor" subtitle="Win vs Loss P&L">
+            <div x-data="donutChart('profitFactorDonut')" class="h-56">
+                <div x-ref="chart" class="w-full h-full"></div>
+            </div>
+        </x-glass-card>
+
+        <x-glass-card title="Total P&L" subtitle="Trade outcome split">
+            <div x-data="donutChart('totalPnlDonut')" class="h-56">
+                <div x-ref="chart" class="w-full h-full"></div>
+            </div>
+        </x-glass-card>
+
+        <x-glass-card title="Avg R:R" subtitle="Risk/Reward distribution">
+            <div x-data="donutChart('avgRrDonut')" class="h-56">
+                <div x-ref="chart" class="w-full h-full"></div>
+            </div>
+        </x-glass-card>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <x-glass-card title="Performance by Pair" subtitle="P&L breakdown per asset">
-            @if(count($byPair) > 0)
+            @if (count($byPair) > 0)
                 <div class="space-y-3">
-                    @foreach($byPair as $pair)
+                    @foreach ($byPair as $pair)
                         <div class="flex items-center justify-between text-sm">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium">{{ $pair['pair'] }}</span>
@@ -40,9 +60,9 @@
         </x-glass-card>
 
         <x-glass-card title="Performance by Strategy" subtitle="Which strategies work best?">
-            @if(count($byStrategy) > 0)
+            @if (count($byStrategy) > 0)
                 <div class="space-y-3">
-                    @foreach($byStrategy as $s)
+                    @foreach ($byStrategy as $s)
                         <div class="flex items-center justify-between text-sm">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium">{{ $s['strategy'] }}</span>
@@ -55,81 +75,155 @@
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-zinc-400 text-center py-8">No strategy data yet. Add strategies to your trades.</p>
+                <p class="text-sm text-zinc-400 text-center py-8">No strategy data yet. Add strategies to your trades.
+                </p>
             @endif
         </x-glass-card>
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
-    <script>
-        function getThemeColors() {
-            const isDark = document.documentElement.classList.contains('dark');
-            return {
-                isDark,
-                text: isDark ? '#a3a3a3' : '#525252',
-                textStrong: isDark ? '#fafafa' : '#0a0a0a',
-                grid: isDark ? 'rgba(250,250,250,0.06)' : 'rgba(10,10,10,0.06)',
-                surface: isDark ? '#1a1a1a' : '#f5f5f5',
-                profit: '#22c55e',
-                loss: '#ef4444',
-                neutral: '#525252',
-            };
-        }
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
+        <script>
+            function getThemeColors() {
+                const isDark = document.documentElement.classList.contains('dark');
+                return {
+                    isDark,
+                    text: isDark ? '#a3a3a3' : '#525252',
+                    textStrong: isDark ? '#fafafa' : '#0a0a0a',
+                    grid: isDark ? 'rgba(250,250,250,0.06)' : 'rgba(10,10,10,0.06)',
+                    surface: isDark ? '#1a1a1a' : '#f5f5f5',
+                    profit: '#22c55e',
+                    loss: '#ef4444',
+                    neutral: '#525252',
+                    accent: '#6366f1',
+                };
+            }
 
-        function winRateChart() {
-            return {
-                init() {
-                    const c = getThemeColors();
-                    const data = @json($winLoss);
-                    const options = {
-                        chart: { type: 'donut', height: '100%', fontFamily: "'Inter', sans-serif" },
-                        series: [data.wins, data.losses, data.breakeven],
+            function getDonutConfig(chartId) {
+                const c = getThemeColors();
+                const winLoss = @json($winLoss);
+                const pfDonut = @json($profitFactorDonut);
+                const pnlDonut = @json($totalPnlDonut);
+                const rrDonut = @json($avgRrDonut);
+
+                const configs = {
+                    winRateDonut: {
+                        series: [winLoss.wins, winLoss.losses, winLoss.breakeven],
                         labels: ['Win', 'Loss', 'Breakeven'],
                         colors: [c.profit, c.loss, c.neutral],
-                        plotOptions: {
-                            pie: {
-                                donut: {
-                                    size: '72%',
-                                    labels: {
-                                        show: true,
-                                        name: { show: true, fontSize: '12px', color: c.text },
-                                        value: {
+                        totalLabel: 'Win Rate',
+                        totalFormatter: () => @json($stats['win_rate']) + '%',
+                        valueFormatter: v => v + '',
+                    },
+                    profitFactorDonut: {
+                        series: pfDonut.series,
+                        labels: pfDonut.labels,
+                        colors: [c.profit, c.loss],
+                        totalLabel: 'P/F Ratio',
+                        totalFormatter: () => @json($stats['profit_factor']),
+                        valueFormatter: v => '$' + parseFloat(v).toLocaleString(),
+                    },
+                    totalPnlDonut: {
+                        series: pnlDonut.series,
+                        labels: pnlDonut.labels,
+                        colors: [c.profit, c.loss, c.neutral],
+                        totalLabel: 'Total P&L',
+                        totalFormatter: () => '@json($stats["total_pnl"] >= 0 ? "+" : "")$' + @json(number_format($stats['total_pnl'], 2)),
+                        valueFormatter: v => v + '',
+                    },
+                    avgRrDonut: {
+                        series: rrDonut.series,
+                        labels: rrDonut.labels,
+                        colors: [c.loss, '#f59e0b', c.accent, c.profit],
+                        totalLabel: 'Avg R:R',
+                        totalFormatter: () => @json($stats['avg_rr']),
+                        valueFormatter: v => v + '',
+                    },
+                };
+                return configs[chartId] || configs.winRateDonut;
+            }
+
+            function donutChart(chartId) {
+                return {
+                    chart: null,
+                    observer: null,
+
+                    init() {
+                        const c = getThemeColors();
+                        const cfg = getDonutConfig(chartId);
+                        const options = {
+                            chart: {
+                                type: 'donut',
+                                height: '100%',
+                                fontFamily: "'Inter', sans-serif"
+                            },
+                            series: cfg.series,
+                            labels: cfg.labels,
+                            colors: cfg.colors,
+                            plotOptions: {
+                                pie: {
+                                    donut: {
+                                        size: '72%',
+                                        labels: {
                                             show: true,
-                                            fontSize: '22px',
-                                            fontWeight: 700,
-                                            color: c.textStrong,
-                                            formatter: v => v + '%',
-                                        },
-                                        total: {
-                                            show: true,
-                                            label: 'Win Rate',
-                                            fontSize: '11px',
-                                            color: c.text,
-                                            formatter: () => @json($stats['win_rate']) + '%',
+                                            name: {
+                                                show: true,
+                                                fontSize: '11px',
+                                                color: c.text
+                                            },
+                                            value: {
+                                                show: true,
+                                                fontSize: '18px',
+                                                fontWeight: 700,
+                                                color: c.textStrong,
+                                                formatter: cfg.valueFormatter,
+                                            },
+                                            total: {
+                                                show: true,
+                                                label: cfg.totalLabel,
+                                                fontSize: '11px',
+                                                color: c.text,
+                                                formatter: cfg.totalFormatter,
+                                            },
                                         },
                                     },
                                 },
                             },
-                        },
-                        stroke: { width: 0 },
-                        dataLabels: { enabled: false },
-                        legend: { position: 'bottom', fontSize: '11px', labels: { colors: c.text } },
-                        tooltip: { theme: c.isDark ? 'dark' : 'light', y: { formatter: v => v + ' trades' } },
-                    };
+                            stroke: { width: 0 },
+                            dataLabels: { enabled: false },
+                            legend: {
+                                position: 'bottom',
+                                fontSize: '10px',
+                                labels: { colors: c.text }
+                            },
+                            tooltip: {
+                                theme: c.isDark ? 'dark' : 'light',
+                            },
+                        };
 
-                    let chart = new ApexCharts(this.$refs.chart, options);
-                    chart.render();
+                        this.renderChart(options);
 
-                    const obs = new MutationObserver(() => {
-                        chart.destroy();
-                        chart = new ApexCharts(this.$refs.chart, options);
-                        chart.render();
-                    });
-                    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-                },
-            };
-        }
-    </script>
+                        this.observer = new MutationObserver(() => {
+                            this.renderChart(options);
+                        });
+                        this.observer.observe(document.documentElement, {
+                            attributes: true,
+                            attributeFilter: ['class']
+                        });
+                    },
+
+                    renderChart(options) {
+                        if (this.chart) this.chart.destroy();
+                        this.chart = new ApexCharts(this.$refs.chart, options);
+                        this.chart.render();
+                    },
+
+                    destroy() {
+                        if (this.chart) this.chart.destroy();
+                        if (this.observer) this.observer.disconnect();
+                    },
+                };
+            }
+        </script>
     @endpush
 </div>

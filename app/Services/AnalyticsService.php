@@ -159,6 +159,58 @@ class AnalyticsService
         return $result;
     }
 
+    public function getProfitFactorDonutData(): array
+    {
+        $wins = (float) Trade::wins()->sum('pnl_amount');
+        $losses = abs((float) Trade::losses()->sum('pnl_amount'));
+
+        return [
+            'series' => [$wins, $losses],
+            'labels' => ['Win P&L', 'Loss P&L'],
+        ];
+    }
+
+    public function getTotalPnlDonutData(): array
+    {
+        $profitCount = Trade::closed()->where('pnl_amount', '>', 0)->count();
+        $lossCount = Trade::closed()->where('pnl_amount', '<', 0)->count();
+        $breakevenCount = Trade::closed()->where('pnl_amount', '=', 0)->count();
+
+        return [
+            'series' => [$profitCount, $lossCount, $breakevenCount],
+            'labels' => ['Profitable', 'Unprofitable', 'Breakeven'],
+        ];
+    }
+
+    public function getAvgRrDonutData(): array
+    {
+        $trades = Trade::closed()
+            ->whereNotNull('stop_loss')
+            ->whereNotNull('take_profit')
+            ->get();
+
+        if ($trades->isEmpty()) {
+            return ['series' => [0, 0, 0, 0], 'labels' => ['<1:1', '1:1', '2:1', '3:1+']];
+        }
+
+        $buckets = [0, 0, 0, 0];
+        foreach ($trades as $trade) {
+            $risk = abs($trade->entry_price - $trade->stop_loss);
+            $reward = abs($trade->take_profit - $trade->entry_price);
+            $rr = $risk > 0 ? $reward / $risk : 0;
+
+            if ($rr < 1) $buckets[0]++;
+            elseif ($rr < 2) $buckets[1]++;
+            elseif ($rr < 3) $buckets[2]++;
+            else $buckets[3]++;
+        }
+
+        return [
+            'series' => $buckets,
+            'labels' => ['<1:1', '1:1', '2:1', '3:1+'],
+        ];
+    }
+
     public function getStreakStats(): array
     {
         $trades = Trade::closed()
