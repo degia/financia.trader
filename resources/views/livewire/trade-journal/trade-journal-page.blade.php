@@ -121,7 +121,7 @@
                                 <td class="px-5 py-3">
                                     <span class="inline-flex items-center gap-1 text-xs font-medium {{ $trade->direction === 'long' ? 'stat-profit' : 'stat-loss' }}">
                                         <x-icon :name="$trade->direction === 'long' ? 'arrow-up-right' : 'arrow-down-right'" class="w-3 h-3" />
-                                        {{ ucfirst($trade->direction) }}
+                                        {{ ucfirst($trade->direction->value) }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-3 text-right font-mono text-xs text-zinc-600 dark:text-zinc-300">{{ $trade->entry_price }}</td>
@@ -217,7 +217,7 @@
                             <div class="flex items-center gap-2 mt-0.5">
                                 <span class="text-xs text-zinc-400 dark:text-zinc-600">{{ $trade->trade_type->label() }}</span>
                                 <span class="text-zinc-300 dark:text-zinc-700">·</span>
-                                <span class="text-xs {{ $trade->direction === 'long' ? 'stat-profit' : 'stat-loss' }}">{{ ucfirst($trade->direction) }}</span>
+                                <span class="text-xs {{ $trade->direction === 'long' ? 'stat-profit' : 'stat-loss' }}">{{ ucfirst($trade->direction->value) }}</span>
                             </div>
                         </div>
                         <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider
